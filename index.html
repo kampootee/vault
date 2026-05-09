@@ -263,15 +263,6 @@
             }
         }
 
-        function toggleWorldSlot(charId, index) {
-            const char = state.characters.find(c => c.id === charId);
-            if (char && char.worldCount >= REQS.world[index]) {
-                char.world[index] = !char.world[index];
-                save();
-                render();
-            }
-        }
-
         function setCategoryCount(charId, cat, val) {
             const char = state.characters.find(c => c.id === charId);
             if (char) {
@@ -394,9 +385,9 @@
                     <div class="grid grid-cols-1 md:grid-cols-12 items-center">
                         
                         <!-- Name Section -->
-                        <div class="md:col-span-3 px-6 py-6 md:py-8 flex items-center justify-between md:border-r border-slate-800">
+                        <div class="md:col-span-3 px-6 py-6 md:py-10 flex items-center justify-between md:border-r border-slate-800">
                             <div class="flex items-center gap-4 overflow-hidden">
-                                <div class="p-2 rounded-lg bg-slate-800 text-slate-400 shrink-0 border border-slate-700 shadow-inner">
+                                <div class="p-2.5 rounded-lg bg-slate-800 text-slate-400 shrink-0 border border-slate-700 shadow-inner">
                                     ${roleIcon}
                                 </div>
                                 <span class="font-bold truncate text-xl" style="color: ${classColor}">${char.name}</span>
@@ -407,9 +398,9 @@
                         </div>
 
                         <!-- Raids -->
-                        <div class="md:col-span-3 px-6 py-6 md:py-8 flex flex-col items-center md:border-r border-slate-800">
+                        <div class="md:col-span-3 px-6 py-8 md:py-10 flex flex-col items-center md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Raids</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-4 flex items-center">
+                            <div class="text-[10px] text-slate-500 font-bold mb-5 flex items-center">
                                 BOSSES: <input type="number" value="${char.raidCount}" onchange="setCategoryCount(${char.id}, 'raid', this.value)" class="count-input"> / 6
                             </div>
                             <div class="flex gap-4 justify-center">
@@ -427,9 +418,9 @@
                         </div>
 
                         <!-- Dungeons -->
-                        <div class="md:col-span-3 px-6 py-6 md:py-8 flex flex-col items-center md:border-r border-slate-800">
+                        <div class="md:col-span-3 px-6 py-8 md:py-10 flex flex-col items-center md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Dungeons</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-4 flex items-center">
+                            <div class="text-[10px] text-slate-500 font-bold mb-5 flex items-center">
                                 RUNS: <input type="number" value="${char.dungeonCount}" onchange="setCategoryCount(${char.id}, 'dungeon', this.value)" class="count-input"> / 8
                             </div>
                             <div class="flex gap-4 justify-center">
@@ -452,19 +443,18 @@
                             </div>
                         </div>
 
-                        <!-- World -->
-                        <div class="md:col-span-3 px-6 py-6 md:py-8 flex flex-col items-center">
+                        <!-- World (Auto-completing) -->
+                        <div class="md:col-span-3 px-6 py-8 md:py-10 flex flex-col items-center">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">World</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-4 flex items-center">
+                            <div class="text-[10px] text-slate-500 font-bold mb-5 flex items-center">
                                 DELVES: <input type="number" value="${char.worldCount}" onchange="setCategoryCount(${char.id}, 'world', this.value)" class="count-input"> / 8
                             </div>
                             <div class="flex gap-4 justify-center">
-                                ${char.world.map((active, i) => {
-                                    const unlocked = char.worldCount >= REQS.world[i];
+                                ${REQS.world.map((req, i) => {
+                                    const completed = char.worldCount >= req;
                                     return `
-                                    <div onclick="toggleWorldSlot(${char.id}, ${i})" 
-                                         class="check-box w-11 h-11 rounded-xl border-2 ${unlocked ? 'cursor-pointer shadow-lg ' + (active ? 'active-world' : 'bg-slate-800 border-slate-700 hover:bg-slate-700') : 'border-slate-800 bg-slate-900 opacity-30'}">
-                                         ${unlocked ? (active ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : '') : `<span class="progress-text">${char.worldCount}/${REQS.world[i]}</span>`}
+                                    <div class="check-box w-11 h-11 rounded-xl border-2 transition-all duration-300 ${completed ? 'active-world shadow-lg' : 'border-slate-800 bg-slate-900 opacity-30'}">
+                                         ${completed ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : `<span class="progress-text">${char.worldCount}/${req}</span>`}
                                     </div>
                                     `;
                                 }).join('')}
