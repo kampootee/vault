@@ -322,6 +322,15 @@
             }
         }
 
+        function resetCategory(charId, cat) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char) {
+                char[`${cat}Count`] = 0;
+                save();
+                render();
+            }
+        }
+
         function deleteChar(id) {
             if (confirm("Remove this character?")) {
                 state.characters = state.characters.filter(c => c.id !== id);
@@ -430,6 +439,10 @@
                 const classColor = CLASS_COLORS[char.class] || '#ffffff';
                 const roleIcon = ROLE_ICONS[char.role] || '';
 
+                const raidMaxed = char.raidCount >= 6;
+                const dungeonMaxed = char.dungeonCount >= 8;
+                const worldMaxed = char.worldCount >= 8;
+
                 return `
                 <div class="char-card glass-panel rounded-xl md:rounded-2xl overflow-hidden shadow-lg border border-slate-800/50" 
                      draggable="true" 
@@ -457,9 +470,16 @@
                         <!-- Raids -->
                         <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Raids</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
-                                BOSSES: <input type="number" value="${char.raidCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'raid', this.value)" class="count-input"> / 6
-                            </div>
+                            
+                            ${raidMaxed ? 
+                                `<div class="text-[10px] text-emerald-500 font-bold mb-3 flex items-center cursor-pointer h-[21px]" onclick="resetCategory(${char.id}, 'raid')" title="Click to edit">
+                                    ✓ RAID COMPLETE
+                                </div>` :
+                                `<div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center h-[21px]">
+                                    BOSSES: <input type="number" value="${char.raidCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'raid', this.value)" class="count-input"> / 6
+                                </div>`
+                            }
+
                             <div class="flex gap-3.5 justify-center">
                                 ${char.raid.map((val, i) => {
                                     const unlocked = char.raidCount >= REQS.raid[i];
@@ -477,9 +497,16 @@
                         <!-- Dungeons -->
                         <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Dungeons</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
-                                RUNS: <input type="number" value="${char.dungeonCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'dungeon', this.value)" class="count-input"> / 8
-                            </div>
+                            
+                            ${dungeonMaxed ? 
+                                `<div class="text-[10px] text-emerald-500 font-bold mb-3 flex items-center cursor-pointer h-[21px]" onclick="resetCategory(${char.id}, 'dungeon')" title="Click to edit">
+                                    ✓ DUNGEONS COMPLETE
+                                </div>` :
+                                `<div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center h-[21px]">
+                                    RUNS: <input type="number" value="${char.dungeonCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'dungeon', this.value)" class="count-input"> / 8
+                                </div>`
+                            }
+
                             <div class="flex gap-3.5 justify-center">
                                 ${char.dungeonLevels.map((level, i) => {
                                     const unlocked = char.dungeonCount >= REQS.dungeon[i];
@@ -504,9 +531,16 @@
                         <!-- World -->
                         <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">World</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
-                                DELVES: <input type="number" value="${char.worldCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'world', this.value)" class="count-input"> / 8
-                            </div>
+                            
+                            ${worldMaxed ? 
+                                `<div class="text-[10px] text-emerald-500 font-bold mb-3 flex items-center cursor-pointer h-[21px]" onclick="resetCategory(${char.id}, 'world')" title="Click to edit">
+                                    ✓ WORLD COMPLETE
+                                </div>` :
+                                `<div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center h-[21px]">
+                                    DELVES: <input type="number" value="${char.worldCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'world', this.value)" class="count-input"> / 8
+                                </div>`
+                            }
+
                             <div class="flex gap-3.5 justify-center">
                                 ${REQS.world.map((req, i) => {
                                     const completed = char.worldCount >= req;
