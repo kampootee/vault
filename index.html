@@ -458,7 +458,7 @@
                         <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Raids</span>
                             <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
-                                BOSSES: <input type="number" value="${char.raidCount}" onchange="setCategoryCount(${char.id}, 'raid', this.value)" class="count-input"> / 6
+                                BOSSES: <input type="number" value="${char.raidCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'raid', this.value)" class="count-input"> / 6
                             </div>
                             <div class="flex gap-3.5 justify-center">
                                 ${char.raid.map((val, i) => {
@@ -478,7 +478,7 @@
                         <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Dungeons</span>
                             <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
-                                RUNS: <input type="number" value="${char.dungeonCount}" onchange="setCategoryCount(${char.id}, 'dungeon', this.value)" class="count-input"> / 8
+                                RUNS: <input type="number" value="${char.dungeonCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'dungeon', this.value)" class="count-input"> / 8
                             </div>
                             <div class="flex gap-3.5 justify-center">
                                 ${char.dungeonLevels.map((level, i) => {
@@ -489,6 +489,7 @@
                                             <input type="number" 
                                                 value="${level || ''}" 
                                                 placeholder="+"
+                                                onfocus="this.select()"
                                                 onchange="setDungeonLevel(${char.id}, ${i}, this.value)"
                                                 class="level-input">
                                         ` : `
@@ -504,7 +505,7 @@
                         <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">World</span>
                             <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
-                                DELVES: <input type="number" value="${char.worldCount}" onchange="setCategoryCount(${char.id}, 'world', this.value)" class="count-input"> / 8
+                                DELVES: <input type="number" value="${char.worldCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'world', this.value)" class="count-input"> / 8
                             </div>
                             <div class="flex gap-3.5 justify-center">
                                 ${REQS.world.map((req, i) => {
