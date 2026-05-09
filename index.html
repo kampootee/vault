@@ -87,6 +87,24 @@
             font-weight: 600;
         }
 
+        /* Drag and Drop Styles */
+        .char-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #475569;
+            transition: color 0.2s;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .drag-handle:hover {
+            color: #94a3b8;
+        }
+
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
@@ -98,7 +116,7 @@
 
     <div class="max-w-5xl mx-auto">
         <!-- Header Area -->
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>
                 <h1 class="text-3xl font-bold tracking-tight text-white">Vault Tracker</h1>
                 <p class="text-slate-400 text-sm">Weekly progress for all characters</p>
@@ -114,7 +132,7 @@
         </header>
 
         <!-- Labels Row (Desktop) -->
-        <div class="hidden md:grid grid-cols-12 gap-4 px-6 mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div class="hidden md:grid grid-cols-12 gap-4 px-6 mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
             <div class="col-span-3">Character</div>
             <div class="col-span-3 text-center">Raids (2/4/6)</div>
             <div class="col-span-3 text-center">Dungeons (1/4/8)</div>
@@ -122,12 +140,12 @@
         </div>
 
         <!-- Character List -->
-        <div id="characterList" class="space-y-4">
+        <div id="characterList" class="space-y-3">
             <!-- Rows injected here -->
         </div>
 
         <!-- Empty State -->
-        <div id="emptyState" class="hidden text-center py-20 glass-panel rounded-2xl">
+        <div id="emptyState" class="hidden text-center py-16 glass-panel rounded-2xl">
             <p class="text-slate-400">No characters added yet. Click "+ Add Character" to begin.</p>
         </div>
     </div>
@@ -135,16 +153,16 @@
     <!-- Add Character Modal -->
     <div id="modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="glass-panel w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-slate-700">
-            <h2 class="text-xl font-semibold mb-6 text-white">Add Character</h2>
+            <h2 class="text-xl font-semibold mb-5 text-white">Add Character</h2>
             
-            <div class="space-y-6">
+            <div class="space-y-5">
                 <div>
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Character Name</label>
                     <input type="text" id="charNameInput" placeholder="e.g. Thrall-Draenor" 
                         class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
-                <div class="grid grid-cols-2 gap-6">
+                <div class="grid grid-cols-2 gap-5">
                     <div>
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Class</label>
                         <select id="charClassInput" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -180,7 +198,7 @@
                 </div>
             </div>
 
-            <div class="flex gap-3 justify-end mt-10">
+            <div class="flex gap-3 justify-end mt-8">
                 <button onclick="closeModal()" class="px-5 py-2.5 text-slate-400 hover:text-white transition-colors">Cancel</button>
                 <button onclick="addCharacter()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-medium transition-colors text-white shadow-lg shadow-blue-900/40">Create Character</button>
             </div>
@@ -221,6 +239,7 @@
         };
 
         let selectedRole = 'dps';
+        let draggedItemIndex = null;
 
         const STORAGE_KEY = 'wow_checklist_modern_v4';
 
@@ -243,6 +262,37 @@
 
         function save() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        // Drag and Drop Logic
+        function handleDragStart(index) {
+            draggedItemIndex = index;
+            setTimeout(() => {
+                const el = document.querySelectorAll('.char-card')[index];
+                if (el) el.classList.add('dragging');
+            }, 0);
+        }
+
+        function handleDragOver(e, index) {
+            e.preventDefault();
+            if (draggedItemIndex === null || draggedItemIndex === index) return;
+            
+            const newChars = [...state.characters];
+            const movedItem = newChars.splice(draggedItemIndex, 1)[0];
+            newChars.splice(index, 0, movedItem);
+            
+            state.characters = newChars;
+            draggedItemIndex = index;
+            render();
+            
+            const el = document.querySelectorAll('.char-card')[index];
+            if (el) el.classList.add('dragging');
+        }
+
+        function handleDragEnd() {
+            draggedItemIndex = null;
+            save();
+            render();
         }
 
         function cycleRaidSlot(charId, index) {
@@ -376,40 +426,47 @@
             }
             
             empty.classList.add('hidden');
-            list.innerHTML = state.characters.map(char => {
+            list.innerHTML = state.characters.map((char, index) => {
                 const classColor = CLASS_COLORS[char.class] || '#ffffff';
                 const roleIcon = ROLE_ICONS[char.role] || '';
 
                 return `
-                <div class="glass-panel rounded-xl md:rounded-2xl overflow-hidden shadow-xl border border-slate-800/50">
+                <div class="char-card glass-panel rounded-xl md:rounded-2xl overflow-hidden shadow-lg border border-slate-800/50" 
+                     draggable="true" 
+                     ondragstart="handleDragStart(${index})"
+                     ondragover="handleDragOver(event, ${index})"
+                     ondragend="handleDragEnd()">
                     <div class="grid grid-cols-1 md:grid-cols-12 items-center">
                         
                         <!-- Name Section -->
-                        <div class="md:col-span-3 px-6 py-6 md:py-10 flex items-center justify-between md:border-r border-slate-800">
+                        <div class="md:col-span-3 px-5 py-4 md:py-6 flex items-center justify-between md:border-r border-slate-800">
                             <div class="flex items-center gap-4 overflow-hidden">
-                                <div class="p-2.5 rounded-lg bg-slate-800 text-slate-400 shrink-0 border border-slate-700 shadow-inner">
+                                <div class="drag-handle p-1 -ml-3" title="Drag to reorder">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
+                                </div>
+                                <div class="p-2 rounded-lg bg-slate-800 text-slate-400 shrink-0 border border-slate-700 shadow-inner">
                                     ${roleIcon}
                                 </div>
-                                <span class="font-bold truncate text-xl" style="color: ${classColor}">${char.name}</span>
+                                <span class="font-bold truncate text-lg" style="color: ${classColor}">${char.name}</span>
                             </div>
-                            <button onclick="deleteChar(${char.id})" class="text-slate-600 hover:text-red-400 transition-colors p-2 shrink-0 ml-2 rounded-lg hover:bg-red-500/10">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                            <button onclick="deleteChar(${char.id})" class="text-slate-600 hover:text-red-400 transition-colors p-2 shrink-0 ml-1 rounded-lg hover:bg-red-500/10">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
                             </button>
                         </div>
 
                         <!-- Raids -->
-                        <div class="md:col-span-3 px-6 py-8 md:py-10 flex flex-col items-center md:border-r border-slate-800">
+                        <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Raids</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-5 flex items-center">
+                            <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
                                 BOSSES: <input type="number" value="${char.raidCount}" onchange="setCategoryCount(${char.id}, 'raid', this.value)" class="count-input"> / 6
                             </div>
-                            <div class="flex gap-4 justify-center">
+                            <div class="flex gap-3.5 justify-center">
                                 ${char.raid.map((val, i) => {
                                     const unlocked = char.raidCount >= REQS.raid[i];
                                     const status = getRaidStatus(val);
                                     return `
                                     <div onclick="cycleRaidSlot(${char.id}, ${i})" 
-                                         class="check-box w-11 h-11 rounded-xl border-2 ${unlocked ? 'cursor-pointer shadow-lg ' + status.class : 'border-slate-800 bg-slate-900 opacity-30'}">
+                                         class="check-box w-10 h-10 rounded-xl border-2 ${unlocked ? 'cursor-pointer shadow-md ' + status.class : 'border-slate-800 bg-slate-900 opacity-30'}">
                                          ${unlocked ? status.label : `<span class="progress-text">${char.raidCount}/${REQS.raid[i]}</span>`}
                                     </div>
                                     `;
@@ -418,16 +475,16 @@
                         </div>
 
                         <!-- Dungeons -->
-                        <div class="md:col-span-3 px-6 py-8 md:py-10 flex flex-col items-center md:border-r border-slate-800">
+                        <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Dungeons</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-5 flex items-center">
+                            <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
                                 RUNS: <input type="number" value="${char.dungeonCount}" onchange="setCategoryCount(${char.id}, 'dungeon', this.value)" class="count-input"> / 8
                             </div>
-                            <div class="flex gap-4 justify-center">
+                            <div class="flex gap-3.5 justify-center">
                                 ${char.dungeonLevels.map((level, i) => {
                                     const unlocked = char.dungeonCount >= REQS.dungeon[i];
                                     return `
-                                    <div class="relative w-11 h-11 check-box rounded-xl border-2 shadow-lg" style="${getDungeonStyle(level, char.dungeonCount, REQS.dungeon[i])}">
+                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getDungeonStyle(level, char.dungeonCount, REQS.dungeon[i])}">
                                         ${unlocked ? `
                                             <input type="number" 
                                                 value="${level || ''}" 
@@ -443,18 +500,18 @@
                             </div>
                         </div>
 
-                        <!-- World (Auto-completing) -->
-                        <div class="md:col-span-3 px-6 py-8 md:py-10 flex flex-col items-center">
+                        <!-- World -->
+                        <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">World</span>
-                            <div class="text-[10px] text-slate-500 font-bold mb-5 flex items-center">
+                            <div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center">
                                 DELVES: <input type="number" value="${char.worldCount}" onchange="setCategoryCount(${char.id}, 'world', this.value)" class="count-input"> / 8
                             </div>
-                            <div class="flex gap-4 justify-center">
+                            <div class="flex gap-3.5 justify-center">
                                 ${REQS.world.map((req, i) => {
                                     const completed = char.worldCount >= req;
                                     return `
-                                    <div class="check-box w-11 h-11 rounded-xl border-2 transition-all duration-300 ${completed ? 'active-world shadow-lg' : 'border-slate-800 bg-slate-900 opacity-30'}">
-                                         ${completed ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : `<span class="progress-text">${char.worldCount}/${req}</span>`}
+                                    <div class="check-box w-10 h-10 rounded-xl border-2 transition-all duration-300 ${completed ? 'active-world shadow-md' : 'border-slate-800 bg-slate-900 opacity-30'}">
+                                         ${completed ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : `<span class="progress-text">${char.worldCount}/${req}</span>`}
                                     </div>
                                     `;
                                 }).join('')}
