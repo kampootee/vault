@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WoW Weekly Checklist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .check-box {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .check-box.active-raid { background-color: #ef4444; border-color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+        .check-box.active-dungeon { background-color: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+        .check-box.active-world { background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Header Area -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-white">Vault Tracker</h1>
+                <p class="text-slate-400 text-sm">Weekly progress for all characters</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="resetAll()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700">
+                    Reset Week
+                </button>
+                <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-shadow shadow-lg shadow-blue-900/20">
+                    + Add Character
+                </button>
+            </div>
+        </header>
+
+        <!-- Labels Row (Desktop) -->
+        <div class="hidden md:grid grid-cols-12 gap-4 px-6 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div class="col-span-3">Character</div>
+            <div class="col-span-3 text-center">Raids (2/4/6)</div>
+            <div class="col-span-3 text-center">Dungeons (1/4/8)</div>
+            <div class="col-span-3 text-center">World (2/4/8)</div>
+        </div>
+
+        <!-- Character List -->
+        <div id="characterList" class="space-y-3">
+            <!-- Rows injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-20 glass-panel rounded-2xl">
+            <p class="text-slate-400">No characters added yet. Click "+ Add Character" to begin.</p>
+        </div>
+    </div>
+
+    <!-- Add Character Modal -->
+    <div id="modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-semibold mb-4">Add Character</h2>
+            <input type="text" id="charNameInput" placeholder="Name (e.g. Maladath-Silvermoon)" 
+                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6">
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeModal()" class="px-5 py-2.5 text-slate-400 hover:text-white transition-colors">Cancel</button>
+                <button onclick="addCharacter()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-medium transition-colors">Create Row</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            characters: []
+        };
+
+        const STORAGE_KEY = 'wow_checklist_modern_v1';
+
+        function load() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                state = JSON.parse(data);
+            } else {
+                // Default starter
+                state.characters = [
+                    { id: Date.now(), name: 'Main Character', raid: [false, false, false], dungeon: [false, false, false], world: [false, false, false] }
+                ];
+            }
+            render();
+        }
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function toggleSlot(charId, category, index) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char) {
+                char[category][index] = !char[category][index];
+                save();
+                render();
+            }
+        }
+
+        function deleteChar(id) {
+            if (confirm("Remove this character?")) {
+                state.characters = state.characters.filter(c => c.id !== id);
+                save();
+                render();
+            }
+        }
+
+        function resetAll() {
+            if (confirm("Clear all weekly progress for everyone?")) {
+                state.characters.forEach(c => {
+                    c.raid = [false, false, false];
+                    c.dungeon = [false, false, false];
+                    c.world = [false, false, false];
+                });
+                save();
+                render();
+            }
+        }
+
+        function openModal() {
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('charNameInput').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function addCharacter() {
+            const nameInput = document.getElementById('charNameInput');
+            const name = nameInput.value.trim();
+            if (name) {
+                state.characters.push({
+                    id: Date.now(),
+                    name: name,
+                    raid: [false, false, false],
+                    dungeon: [false, false, false],
+                    world: [false, false, false]
+                });
+                nameInput.value = '';
+                closeModal();
+                save();
+                render();
+            }
+        }
+
+        function render() {
+            const list = document.getElementById('characterList');
+            const empty = document.getElementById('emptyState');
+            
+            if (state.characters.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            
+            empty.classList.add('hidden');
+            list.innerHTML = state.characters.map(char => `
+                <div class="glass-panel rounded-xl md:rounded-2xl p-4 md:p-0 overflow-hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4 md:gap-0">
+                        
+                        <!-- Name Section -->
+                        <div class="md:col-span-3 px-6 py-4 flex items-center justify-between md:border-r border-slate-800">
+                            <span class="font-semibold text-slate-100 truncate mr-2">${char.name}</span>
+                            <button onclick="deleteChar(${char.id})" class="text-slate-600 hover:text-red-400 transition-colors p-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- Activities (Mobile labels shown, Desktop hidden) -->
+                        <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Raids</span>
+                            <div class="flex gap-3 justify-center mb-2 md:mb-0">
+                                ${char.raid.map((active, i) => `
+                                    <div onclick="toggleSlot(${char.id}, 'raid', ${i})" 
+                                         class="check-box w-10 h-10 md:w-8 md:h-8 rounded-lg border-2 cursor-pointer border-slate-700 flex items-center justify-center ${active ? 'active-raid' : 'bg-slate-800 hover:bg-slate-700'}">
+                                         ${active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Dungeons</span>
+                            <div class="flex gap-3 justify-center mb-2 md:mb-0">
+                                ${char.dungeon.map((active, i) => `
+                                    <div onclick="toggleSlot(${char.id}, 'dungeon', ${i})" 
+                                         class="check-box w-10 h-10 md:w-8 md:h-8 rounded-lg border-2 cursor-pointer border-slate-700 flex items-center justify-center ${active ? 'active-dungeon' : 'bg-slate-800 hover:bg-slate-700'}">
+                                         ${active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2">
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">World</span>
+                            <div class="flex gap-3 justify-center mb-2 md:mb-0">
+                                ${char.world.map((active, i) => `
+                                    <div onclick="toggleSlot(${char.id}, 'world', ${i})" 
+                                         class="check-box w-10 h-10 md:w-8 md:h-8 rounded-lg border-2 cursor-pointer border-slate-700 flex items-center justify-center ${active ? 'active-world' : 'bg-slate-800 hover:bg-slate-700'}">
+                                         ${active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Handle enter key on input
+        document.getElementById('charNameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCharacter();
+        });
+
+        // Initialize
+        load();
+    </script>
+</body>
+</html>
