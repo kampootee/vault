@@ -23,9 +23,21 @@
 
         .check-box {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: white;
         }
 
-        .check-box.active-raid { background-color: #ef4444; border-color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+        /* Raid Difficulty Colors */
+        .raid-none { background-color: #1e293b; border-color: #334155; }
+        .raid-normal { background-color: #2563eb; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37, 99, 235, 0.3); }
+        .raid-heroic { background-color: #9333ea; border-color: #c084fc; box-shadow: 0 0 10px rgba(147, 51, 234, 0.3); }
+        .raid-mythic { background-color: #d97706; border-color: #fbbf24; box-shadow: 0 0 10px rgba(217, 119, 6, 0.3); }
+
         .check-box.active-dungeon { background-color: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
         .check-box.active-world { background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
 
@@ -38,6 +50,29 @@
             border-color: #3b82f6;
             background: rgba(59, 130, 246, 0.1);
         }
+
+        /* Seamless Number Input Overlays */
+        .level-input {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            font-weight: 800;
+            font-size: 16px;
+            outline: none;
+            -moz-appearance: textfield; /* Firefox */
+        }
+
+        /* Hide arrows in Chrome, Safari, Edge, Opera */
+        .level-input::-webkit-outer-spin-button,
+        .level-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .level-input::placeholder { color: rgba(255,255,255,0.2); }
 
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
@@ -168,15 +203,32 @@
 
         let selectedRole = 'dps';
 
-        const STORAGE_KEY = 'wow_checklist_modern_v2';
+        const STORAGE_KEY = 'wow_checklist_modern_v3';
 
         function load() {
             const data = localStorage.getItem(STORAGE_KEY);
             if (data) {
                 state = JSON.parse(data);
+                state.characters.forEach(char => {
+                    if (typeof char.raid[0] === 'boolean') {
+                        char.raid = char.raid.map(v => v ? 1 : 0);
+                    }
+                    if (!char.dungeonLevels) {
+                        char.dungeonLevels = [0, 0, 0];
+                    }
+                });
             } else {
                 state.characters = [
-                    { id: Date.now(), name: 'Main Character', class: 'Warrior', role: 'tank', raid: [false, false, false], dungeon: [false, false, false], world: [false, false, false] }
+                    { 
+                        id: Date.now(), 
+                        name: 'Main Character', 
+                        class: 'Warrior', 
+                        role: 'tank', 
+                        raid: [0, 0, 0], 
+                        dungeon: [false, false, false], 
+                        dungeonLevels: [0, 0, 0],
+                        world: [false, false, false] 
+                    }
                 ];
             }
             render();
@@ -186,10 +238,40 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
 
-        function toggleSlot(charId, category, index) {
+        function cycleRaidSlot(charId, index) {
             const char = state.characters.find(c => c.id === charId);
             if (char) {
-                char[category][index] = !char[category][index];
+                char.raid[index] = (char.raid[index] + 1) % 4;
+                save();
+                render();
+            }
+        }
+
+        function toggleDungeonSlot(charId, index) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char) {
+                char.dungeon[index] = !char.dungeon[index];
+                if (!char.dungeon[index]) char.dungeonLevels[index] = 0;
+                save();
+                render();
+            }
+        }
+
+        function setDungeonLevel(charId, index, level) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char) {
+                const num = parseInt(level) || 0;
+                char.dungeonLevels[index] = num;
+                char.dungeon[index] = num > 0;
+                save();
+                render();
+            }
+        }
+
+        function toggleWorldSlot(charId, index) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char) {
+                char.world[index] = !char.world[index];
                 save();
                 render();
             }
@@ -206,8 +288,9 @@
         function resetAll() {
             if (confirm("Clear all weekly progress for everyone?")) {
                 state.characters.forEach(c => {
-                    c.raid = [false, false, false];
+                    c.raid = [0, 0, 0];
                     c.dungeon = [false, false, false];
+                    c.dungeonLevels = [0, 0, 0];
                     c.world = [false, false, false];
                 });
                 save();
@@ -242,14 +325,24 @@
                     name: name,
                     class: classInput.value,
                     role: selectedRole,
-                    raid: [false, false, false],
+                    raid: [0, 0, 0],
                     dungeon: [false, false, false],
+                    dungeonLevels: [0, 0, 0],
                     world: [false, false, false]
                 });
                 nameInput.value = '';
                 closeModal();
                 save();
                 render();
+            }
+        }
+
+        function getRaidStatus(val) {
+            switch(val) {
+                case 1: return { class: 'raid-normal', label: 'N' };
+                case 2: return { class: 'raid-heroic', label: 'H' };
+                case 3: return { class: 'raid-mythic', label: 'M' };
+                default: return { class: 'raid-none', label: '' };
             }
         }
 
@@ -285,37 +378,45 @@
                             </button>
                         </div>
 
-                        <!-- Activities -->
+                        <!-- Raids -->
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Raids (2/4/6)</span>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
-                                ${char.raid.map((active, i) => `
-                                    <div onclick="toggleSlot(${char.id}, 'raid', ${i})" 
-                                         class="check-box w-10 h-10 md:w-8 md:h-8 rounded-lg border-2 cursor-pointer border-slate-700 flex items-center justify-center ${active ? 'active-raid' : 'bg-slate-800 hover:bg-slate-700'}">
-                                         ${active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : ''}
+                                ${char.raid.map((val, i) => {
+                                    const status = getRaidStatus(val);
+                                    return `
+                                    <div onclick="cycleRaidSlot(${char.id}, ${i})" 
+                                         class="check-box w-10 h-10 md:w-9 md:h-9 rounded-lg border-2 cursor-pointer ${status.class}">
+                                         ${status.label}
                                     </div>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
 
+                        <!-- Dungeons -->
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Dungeons (1/4/8)</span>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
                                 ${char.dungeon.map((active, i) => `
-                                    <div onclick="toggleSlot(${char.id}, 'dungeon', ${i})" 
-                                         class="check-box w-10 h-10 md:w-8 md:h-8 rounded-lg border-2 cursor-pointer border-slate-700 flex items-center justify-center ${active ? 'active-dungeon' : 'bg-slate-800 hover:bg-slate-700'}">
-                                         ${active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : ''}
+                                    <div class="relative w-10 h-10 md:w-9 md:h-9 check-box rounded-lg border-2 border-slate-700 ${active ? 'active-dungeon' : 'bg-slate-800'}">
+                                        <input type="number" 
+                                               value="${char.dungeonLevels[i] || ''}" 
+                                               placeholder="+"
+                                               onchange="setDungeonLevel(${char.id}, ${i}, this.value)"
+                                               class="level-input">
                                     </div>
                                 `).join('')}
                             </div>
                         </div>
 
+                        <!-- World -->
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">World (2/4/8)</span>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
                                 ${char.world.map((active, i) => `
-                                    <div onclick="toggleSlot(${char.id}, 'world', ${i})" 
-                                         class="check-box w-10 h-10 md:w-8 md:h-8 rounded-lg border-2 cursor-pointer border-slate-700 flex items-center justify-center ${active ? 'active-world' : 'bg-slate-800 hover:bg-slate-700'}">
+                                    <div onclick="toggleWorldSlot(${char.id}, ${i})" 
+                                         class="check-box w-10 h-10 md:w-9 md:h-9 rounded-lg border-2 cursor-pointer border-slate-700 flex items-center justify-center ${active ? 'active-world' : 'bg-slate-800 hover:bg-slate-700'}">
                                          ${active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : ''}
                                     </div>
                                 `).join('')}
@@ -327,12 +428,10 @@
             `;}).join('');
         }
 
-        // Handle enter key on input
         document.getElementById('charNameInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addCharacter();
         });
 
-        // Initialize
         load();
     </script>
 </body>
