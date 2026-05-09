@@ -51,27 +51,41 @@
         }
 
         /* Seamless Number Input Overlays */
-        .level-input {
-            width: 100%;
-            height: 100%;
+        .level-input, .count-input {
             background: transparent;
             border: none;
             color: white;
             text-align: center;
             font-weight: 800;
-            font-size: 16px;
             outline: none;
-            -moz-appearance: textfield; /* Firefox */
+            -moz-appearance: textfield;
         }
 
-        /* Hide arrows in Chrome, Safari, Edge, Opera */
-        .level-input::-webkit-outer-spin-button,
-        .level-input::-webkit-inner-spin-button {
+        .level-input { width: 100%; height: 100%; font-size: 16px; }
+        .count-input { 
+            width: 32px; 
+            font-size: 12px; 
+            border-bottom: 1px solid rgba(255,255,255,0.2); 
+            margin: 0 4px;
+            padding: 0;
+            color: #94a3b8;
+        }
+        .count-input:focus { border-color: #3b82f6; color: white; }
+
+        /* Hide arrows */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
 
         .level-input::placeholder { color: rgba(255,255,255,0.2); }
+
+        .progress-text {
+            font-size: 10px;
+            color: #475569;
+            font-weight: 600;
+        }
 
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
@@ -196,39 +210,33 @@
             dps: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"></path><path d="M13 19l6-6"></path><path d="M16 22l5-5"></path><circle cx="20" cy="4" r="2"></circle></svg>`
         };
 
+        const REQS = {
+            raid: [2, 4, 6],
+            dungeon: [1, 4, 8],
+            world: [2, 4, 8]
+        };
+
         let state = {
             characters: []
         };
 
         let selectedRole = 'dps';
 
-        const STORAGE_KEY = 'wow_checklist_modern_v3';
+        const STORAGE_KEY = 'wow_checklist_modern_v4';
 
         function load() {
             const data = localStorage.getItem(STORAGE_KEY);
             if (data) {
                 state = JSON.parse(data);
                 state.characters.forEach(char => {
-                    if (typeof char.raid[0] === 'boolean') {
-                        char.raid = char.raid.map(v => v ? 1 : 0);
-                    }
-                    if (!char.dungeonLevels) {
-                        char.dungeonLevels = [0, 0, 0];
-                    }
+                    if (typeof char.raid[0] === 'boolean') char.raid = char.raid.map(v => v ? 1 : 0);
+                    if (!char.dungeonLevels) char.dungeonLevels = [0, 0, 0];
+                    if (char.raidCount === undefined) char.raidCount = 0;
+                    if (char.dungeonCount === undefined) char.dungeonCount = 0;
+                    if (char.worldCount === undefined) char.worldCount = 0;
                 });
             } else {
-                state.characters = [
-                    { 
-                        id: Date.now(), 
-                        name: 'Main Character', 
-                        class: 'Warrior', 
-                        role: 'tank', 
-                        raid: [0, 0, 0], 
-                        dungeon: [false, false, false], 
-                        dungeonLevels: [0, 0, 0],
-                        world: [false, false, false] 
-                    }
-                ];
+                state.characters = [];
             }
             render();
         }
@@ -239,18 +247,8 @@
 
         function cycleRaidSlot(charId, index) {
             const char = state.characters.find(c => c.id === charId);
-            if (char) {
+            if (char && char.raidCount >= REQS.raid[index]) {
                 char.raid[index] = (char.raid[index] + 1) % 4;
-                save();
-                render();
-            }
-        }
-
-        function toggleDungeonSlot(charId, index) {
-            const char = state.characters.find(c => c.id === charId);
-            if (char) {
-                char.dungeon[index] = !char.dungeon[index];
-                if (!char.dungeon[index]) char.dungeonLevels[index] = 0;
                 save();
                 render();
             }
@@ -258,10 +256,8 @@
 
         function setDungeonLevel(charId, index, level) {
             const char = state.characters.find(c => c.id === charId);
-            if (char) {
-                const num = parseInt(level) || 0;
-                char.dungeonLevels[index] = num;
-                char.dungeon[index] = num > 0;
+            if (char && char.dungeonCount >= REQS.dungeon[index]) {
+                char.dungeonLevels[index] = parseInt(level) || 0;
                 save();
                 render();
             }
@@ -269,8 +265,17 @@
 
         function toggleWorldSlot(charId, index) {
             const char = state.characters.find(c => c.id === charId);
-            if (char) {
+            if (char && char.worldCount >= REQS.world[index]) {
                 char.world[index] = !char.world[index];
+                save();
+                render();
+            }
+        }
+
+        function setCategoryCount(charId, cat, val) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char) {
+                char[`${cat}Count`] = parseInt(val) || 0;
                 save();
                 render();
             }
@@ -288,9 +293,11 @@
             if (confirm("Clear all weekly progress for everyone?")) {
                 state.characters.forEach(c => {
                     c.raid = [0, 0, 0];
-                    c.dungeon = [false, false, false];
                     c.dungeonLevels = [0, 0, 0];
                     c.world = [false, false, false];
+                    c.raidCount = 0;
+                    c.dungeonCount = 0;
+                    c.worldCount = 0;
                 });
                 save();
                 render();
@@ -325,9 +332,11 @@
                     class: classInput.value,
                     role: selectedRole,
                     raid: [0, 0, 0],
-                    dungeon: [false, false, false],
                     dungeonLevels: [0, 0, 0],
-                    world: [false, false, false]
+                    world: [false, false, false],
+                    raidCount: 0,
+                    dungeonCount: 0,
+                    worldCount: 0
                 });
                 nameInput.value = '';
                 closeModal();
@@ -345,19 +354,20 @@
             }
         }
 
-        function getDungeonStyle(level) {
+        function getDungeonStyle(level, currentCount, req) {
+            if (currentCount < req) return 'background-color: #0f172a; border-color: #1e293b; opacity: 0.5;';
             if (!level || level === 0) return 'background-color: #1e293b; border-color: #334155;';
             
             const colors = {
-                2: { bg: '#10b981', border: '#34d399' }, // Emerald
-                3: { bg: '#059669', border: '#10b981' }, // Green
-                4: { bg: '#0d9488', border: '#14b8a6' }, // Teal
-                5: { bg: '#2563eb', border: '#60a5fa' }, // Blue
-                6: { bg: '#4f46e5', border: '#818cf8' }, // Indigo
-                7: { bg: '#7c3aed', border: '#a78bfa' }, // Violet
-                8: { bg: '#9333ea', border: '#c084fc' }, // Purple
-                9: { bg: '#c026d3', border: '#e879f9' }, // Fuchsia
-                10: { bg: '#d97706', border: '#fbbf24' } // Amber/Gold
+                2: { bg: '#10b981', border: '#34d399' },
+                3: { bg: '#059669', border: '#10b981' },
+                4: { bg: '#0d9488', border: '#14b8a6' },
+                5: { bg: '#2563eb', border: '#60a5fa' },
+                6: { bg: '#4f46e5', border: '#818cf8' },
+                7: { bg: '#7c3aed', border: '#a78bfa' },
+                8: { bg: '#9333ea', border: '#c084fc' },
+                9: { bg: '#c026d3', border: '#e879f9' },
+                10: { bg: '#d97706', border: '#fbbf24' }
             };
 
             const config = colors[level] || (level > 10 ? colors[10] : { bg: '#3b82f6', border: '#60a5fa' });
@@ -398,14 +408,18 @@
 
                         <!-- Raids -->
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
-                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Raids (2/4/6)</span>
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Raids</span>
+                            <div class="text-[10px] text-slate-500 font-bold mb-1">
+                                BOSSES: <input type="number" value="${char.raidCount}" onchange="setCategoryCount(${char.id}, 'raid', this.value)" class="count-input"> / 6
+                            </div>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
                                 ${char.raid.map((val, i) => {
+                                    const unlocked = char.raidCount >= REQS.raid[i];
                                     const status = getRaidStatus(val);
                                     return `
                                     <div onclick="cycleRaidSlot(${char.id}, ${i})" 
-                                         class="check-box w-10 h-10 md:w-9 md:h-9 rounded-lg border-2 cursor-pointer ${status.class}">
-                                         ${status.label}
+                                         class="check-box w-10 h-10 md:w-9 md:h-9 rounded-lg border-2 ${unlocked ? 'cursor-pointer ' + status.class : 'border-slate-800 bg-slate-900 opacity-40'}">
+                                         ${unlocked ? status.label : `<span class="progress-text">${char.raidCount}/${REQS.raid[i]}</span>`}
                                     </div>
                                     `;
                                 }).join('')}
@@ -414,36 +428,53 @@
 
                         <!-- Dungeons -->
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
-                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Dungeons (1/4/8)</span>
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Dungeons</span>
+                            <div class="text-[10px] text-slate-500 font-bold mb-1">
+                                RUNS: <input type="number" value="${char.dungeonCount}" onchange="setCategoryCount(${char.id}, 'dungeon', this.value)" class="count-input"> / 8
+                            </div>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
-                                ${char.dungeonLevels.map((level, i) => `
-                                    <div class="relative w-10 h-10 md:w-9 md:h-9 check-box rounded-lg border-2" style="${getDungeonStyle(level)}">
-                                        <input type="number" 
-                                               value="${level || ''}" 
-                                               placeholder="+"
-                                               onchange="setDungeonLevel(${char.id}, ${i}, this.value)"
-                                               class="level-input">
+                                ${char.dungeonLevels.map((level, i) => {
+                                    const unlocked = char.dungeonCount >= REQS.dungeon[i];
+                                    return `
+                                    <div class="relative w-10 h-10 md:w-9 md:h-9 check-box rounded-lg border-2" style="${getDungeonStyle(level, char.dungeonCount, REQS.dungeon[i])}">
+                                        ${unlocked ? `
+                                            <input type="number" 
+                                                value="${level || ''}" 
+                                                placeholder="+"
+                                                onchange="setDungeonLevel(${char.id}, ${i}, this.value)"
+                                                class="level-input">
+                                        ` : `
+                                            <span class="progress-text">${char.dungeonCount}/${REQS.dungeon[i]}</span>
+                                        `}
                                     </div>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
 
                         <!-- World -->
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2">
-                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">World (2/4/8)</span>
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">World</span>
+                            <div class="text-[10px] text-slate-500 font-bold mb-1">
+                                DELVES: <input type="number" value="${char.worldCount}" onchange="setCategoryCount(${char.id}, 'world', this.value)" class="count-input"> / 8
+                            </div>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
-                                ${char.world.map((active, i) => `
+                                ${char.world.map((active, i) => {
+                                    const unlocked = char.worldCount >= REQS.world[i];
+                                    return `
                                     <div onclick="toggleWorldSlot(${char.id}, ${i})" 
-                                         class="check-box w-10 h-10 md:w-9 md:h-9 rounded-lg border-2 cursor-pointer border-slate-700 flex items-center justify-center ${active ? 'active-world' : 'bg-slate-800 hover:bg-slate-700'}">
-                                         ${active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : ''}
+                                         class="check-box w-10 h-10 md:w-9 md:h-9 rounded-lg border-2 ${unlocked ? 'cursor-pointer ' + (active ? 'active-world' : 'bg-slate-800 border-slate-700 hover:bg-slate-700') : 'border-slate-800 bg-slate-900 opacity-40'}">
+                                         ${unlocked ? (active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : '') : `<span class="progress-text">${char.worldCount}/${REQS.world[i]}</span>`}
                                     </div>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
 
                     </div>
                 </div>
-            `;}).join('');
+                `;
+            }).join('');
         }
 
         document.getElementById('charNameInput').addEventListener('keypress', (e) => {
