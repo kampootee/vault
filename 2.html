@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WoW Weekly Checklist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .check-box {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: white;
+        }
+
+        /* Raid Difficulty Colors */
+        .raid-none { background-color: #1e293b; border-color: #334155; }
+        .raid-normal { background-color: #2563eb; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37, 99, 235, 0.3); }
+        .raid-heroic { background-color: #9333ea; border-color: #c084fc; box-shadow: 0 0 10px rgba(147, 51, 234, 0.3); }
+        .raid-mythic { background-color: #d97706; border-color: #fbbf24; box-shadow: 0 0 10px rgba(217, 119, 6, 0.3); }
+
+        .check-box.active-world { background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+
+        /* Role Selection Styling */
+        .role-option {
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .role-option.selected {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        /* Seamless Number Input Overlays */
+        .level-input, .count-input {
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            font-weight: 800;
+            outline: none;
+            -moz-appearance: textfield;
+        }
+
+        .level-input { width: 100%; height: 100%; font-size: 16px; }
+        .count-input { 
+            width: 32px; 
+            font-size: 12px; 
+            border-bottom: 1px solid rgba(255,255,255,0.2); 
+            margin: 0 4px;
+            padding: 0;
+            color: #94a3b8;
+        }
+        .count-input:focus { border-color: #3b82f6; color: white; }
+
+        /* Hide arrows */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .level-input::placeholder { color: rgba(255,255,255,0.2); }
+
+        .progress-text {
+            font-size: 10px;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        /* Drag and Drop Styles */
+        .char-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #475569;
+            transition: color 0.2s;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .drag-handle:hover {
+            color: #94a3b8;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Header Area -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-white">Vault Tracker</h1>
+                <p class="text-slate-400 text-sm">Weekly progress for all characters</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="resetAll()" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700">
+                    Reset Week
+                </button>
+                <button onclick="openModal()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-shadow shadow-lg shadow-blue-900/20">
+                    + Add Character
+                </button>
+            </div>
+        </header>
+
+        <!-- Labels Row (Desktop) -->
+        <div class="hidden md:grid grid-cols-12 gap-4 px-6 mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div class="col-span-3">Character</div>
+            <div class="col-span-3 text-center">Raids (2/4/6)</div>
+            <div class="col-span-3 text-center">Dungeons (1/4/8)</div>
+            <div class="col-span-3 text-center">World (2/4/8)</div>
+        </div>
+
+        <!-- Character List -->
+        <div id="characterList" class="space-y-3">
+            <!-- Rows injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-16 glass-panel rounded-2xl">
+            <p class="text-slate-400">No characters added yet. Click "+ Add Character" to begin.</p>
+        </div>
+    </div>
+
+    <!-- Add Character Modal -->
+    <div id="modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-slate-700">
+            <h2 class="text-xl font-semibold mb-5 text-white">Add Character</h2>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Character Name</label>
+                    <input type="text" id="charNameInput" placeholder="e.g. Thrall-Draenor" 
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Class</label>
+                        <select id="charClassInput" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="Warrior">Warrior</option>
+                            <option value="Paladin">Paladin</option>
+                            <option value="Hunter">Hunter</option>
+                            <option value="Rogue">Rogue</option>
+                            <option value="Priest">Priest</option>
+                            <option value="DeathKnight">Death Knight</option>
+                            <option value="Shaman">Shaman</option>
+                            <option value="Mage">Mage</option>
+                            <option value="Warlock">Warlock</option>
+                            <option value="Monk">Monk</option>
+                            <option value="Druid">Druid</option>
+                            <option value="DemonHunter">Demon Hunter</option>
+                            <option value="Evoker">Evoker</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Role</label>
+                        <div class="flex gap-2">
+                            <button onclick="setRole('tank')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center h-12" data-role="tank" title="Tank">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            </button>
+                            <button onclick="setRole('healer')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center h-12" data-role="healer" title="Healer">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </button>
+                            <button onclick="setRole('dps')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center h-12 selected" data-role="dps" title="DPS">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"></path><path d="M13 19l6-6"></path><path d="M16 22l5-5"></path><circle cx="20" cy="4" r="2"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end mt-8">
+                <button onclick="closeModal()" class="px-5 py-2.5 text-slate-400 hover:text-white transition-colors">Cancel</button>
+                <button onclick="addCharacter()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-medium transition-colors text-white shadow-lg shadow-blue-900/40">Create Character</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CLASS_COLORS = {
+            Warrior: '#C69B6D',
+            Paladin: '#F48CBA',
+            Hunter: '#AAD372',
+            Rogue: '#FFF468',
+            Priest: '#FFFFFF',
+            DeathKnight: '#C41E3A',
+            Shaman: '#0070DD',
+            Mage: '#3FC7EB',
+            Warlock: '#8788EE',
+            Monk: '#00FF98',
+            Druid: '#FF7C0A',
+            DemonHunter: '#A330C9',
+            Evoker: '#33937F'
+        };
+
+        const ROLE_ICONS = {
+            tank: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+            healer: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+            dps: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"></path><path d="M13 19l6-6"></path><path d="M16 22l5-5"></path><circle cx="20" cy="4" r="2"></circle></svg>`
+        };
+
+        const REQS = {
+            raid: [2, 4, 6],
+            dungeon: [1, 4, 8],
+            world: [2, 4, 8]
+        };
+
+        let state = {
+            characters: []
+        };
+
+        let selectedRole = 'dps';
+        let draggedItemIndex = null;
+
+        const STORAGE_KEY = 'wow_checklist_modern_v4';
+
+        function load() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                state = JSON.parse(data);
+                state.characters.forEach(char => {
+                    if (typeof char.raid[0] === 'boolean') char.raid = char.raid.map(v => v ? 1 : 0);
+                    if (!char.dungeonLevels) char.dungeonLevels = [0, 0, 0];
+                    if (char.raidCount === undefined) char.raidCount = 0;
+                    if (char.dungeonCount === undefined) char.dungeonCount = 0;
+                    if (char.worldCount === undefined) char.worldCount = 0;
+                });
+            } else {
+                state.characters = [];
+            }
+            render();
+        }
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        // Drag and Drop Logic
+        function handleDragStart(index) {
+            draggedItemIndex = index;
+            setTimeout(() => {
+                const el = document.querySelectorAll('.char-card')[index];
+                if (el) el.classList.add('dragging');
+            }, 0);
+        }
+
+        function handleDragOver(e, index) {
+            e.preventDefault();
+            if (draggedItemIndex === null || draggedItemIndex === index) return;
+            
+            const newChars = [...state.characters];
+            const movedItem = newChars.splice(draggedItemIndex, 1)[0];
+            newChars.splice(index, 0, movedItem);
+            
+            state.characters = newChars;
+            draggedItemIndex = index;
+            render();
+            
+            const el = document.querySelectorAll('.char-card')[index];
+            if (el) el.classList.add('dragging');
+        }
+
+        function handleDragEnd() {
+            draggedItemIndex = null;
+            save();
+            render();
+        }
+
+        function cycleRaidSlot(charId, index) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char && char.raidCount >= REQS.raid[index]) {
+                char.raid[index] = (char.raid[index] + 1) % 4;
+                save();
+                render();
+            }
+        }
+
+        function setDungeonLevel(charId, index, level) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char && char.dungeonCount >= REQS.dungeon[index]) {
+                char.dungeonLevels[index] = parseInt(level) || 0;
+                save();
+                render();
+            }
+        }
+
+        function setCategoryCount(charId, cat, val) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char) {
+                char[`${cat}Count`] = parseInt(val) || 0;
+                save();
+                render();
+            }
+        }
+
+        function resetCategory(charId, cat) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char) {
+                char[`${cat}Count`] = 0;
+                save();
+                render();
+            }
+        }
+
+        function deleteChar(id) {
+            if (confirm("Remove this character?")) {
+                state.characters = state.characters.filter(c => c.id !== id);
+                save();
+                render();
+            }
+        }
+
+        function resetAll() {
+            if (confirm("Clear all weekly progress for everyone?")) {
+                state.characters.forEach(c => {
+                    c.raid = [0, 0, 0];
+                    c.dungeonLevels = [0, 0, 0];
+                    c.world = [false, false, false];
+                    c.raidCount = 0;
+                    c.dungeonCount = 0;
+                    c.worldCount = 0;
+                });
+                save();
+                render();
+            }
+        }
+
+        function setRole(role) {
+            selectedRole = role;
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.dataset.role === role) btn.classList.add('selected');
+            });
+        }
+
+        function openModal() {
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('charNameInput').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function addCharacter() {
+            const nameInput = document.getElementById('charNameInput');
+            const classInput = document.getElementById('charClassInput');
+            const name = nameInput.value.trim();
+            if (name) {
+                state.characters.push({
+                    id: Date.now(),
+                    name: name,
+                    class: classInput.value,
+                    role: selectedRole,
+                    raid: [0, 0, 0],
+                    dungeonLevels: [0, 0, 0],
+                    world: [false, false, false],
+                    raidCount: 0,
+                    dungeonCount: 0,
+                    worldCount: 0
+                });
+                nameInput.value = '';
+                closeModal();
+                save();
+                render();
+            }
+        }
+
+        function getRaidStatus(val) {
+            switch(val) {
+                case 1: return { class: 'raid-normal', label: 'N' };
+                case 2: return { class: 'raid-heroic', label: 'H' };
+                case 3: return { class: 'raid-mythic', label: 'M' };
+                default: return { class: 'raid-none', label: '' };
+            }
+        }
+
+        function getDungeonStyle(level, currentCount, req) {
+            if (currentCount < req) return 'background-color: #0f172a; border-color: #1e293b; opacity: 0.5;';
+            if (!level || level === 0) return 'background-color: #1e293b; border-color: #334155;';
+            
+            const colors = {
+                2: { bg: '#10b981', border: '#34d399' },
+                3: { bg: '#059669', border: '#10b981' },
+                4: { bg: '#0d9488', border: '#14b8a6' },
+                5: { bg: '#2563eb', border: '#60a5fa' },
+                6: { bg: '#4f46e5', border: '#818cf8' },
+                7: { bg: '#7c3aed', border: '#a78bfa' },
+                8: { bg: '#9333ea', border: '#c084fc' },
+                9: { bg: '#c026d3', border: '#e879f9' },
+                10: { bg: '#d97706', border: '#fbbf24' }
+            };
+
+            const config = colors[level] || (level > 10 ? colors[10] : { bg: '#3b82f6', border: '#60a5fa' });
+            return `background-color: ${config.bg}; border-color: ${config.border}; box-shadow: 0 0 10px ${config.bg}66;`;
+        }
+
+        function render() {
+            const list = document.getElementById('characterList');
+            const empty = document.getElementById('emptyState');
+            
+            if (state.characters.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            
+            empty.classList.add('hidden');
+            list.innerHTML = state.characters.map((char, index) => {
+                const classColor = CLASS_COLORS[char.class] || '#ffffff';
+                const roleIcon = ROLE_ICONS[char.role] || '';
+
+                const raidMaxed = char.raidCount >= 6;
+                const dungeonMaxed = char.dungeonCount >= 8;
+                const worldMaxed = char.worldCount >= 8;
+
+                return `
+                <div class="char-card glass-panel rounded-xl md:rounded-2xl overflow-hidden shadow-lg border border-slate-800/50" 
+                     draggable="true" 
+                     ondragstart="handleDragStart(${index})"
+                     ondragover="handleDragOver(event, ${index})"
+                     ondragend="handleDragEnd()">
+                    <div class="grid grid-cols-1 md:grid-cols-12 items-center">
+                        
+                        <!-- Name Section -->
+                        <div class="md:col-span-3 px-5 py-4 md:py-6 flex items-center justify-between md:border-r border-slate-800">
+                            <div class="flex items-center gap-4 overflow-hidden">
+                                <div class="drag-handle p-1 -ml-3" title="Drag to reorder">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
+                                </div>
+                                <div class="p-2 rounded-lg bg-slate-800 text-slate-400 shrink-0 border border-slate-700 shadow-inner">
+                                    ${roleIcon}
+                                </div>
+                                <span class="font-bold truncate text-lg" style="color: ${classColor}">${char.name}</span>
+                            </div>
+                            <button onclick="deleteChar(${char.id})" class="text-slate-600 hover:text-red-400 transition-colors p-2 shrink-0 ml-1 rounded-lg hover:bg-red-500/10">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- Raids -->
+                        <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center md:border-r border-slate-800">
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Raids</span>
+                            
+                            ${raidMaxed ? 
+                                `<div class="text-[10px] text-emerald-500 font-bold mb-3 flex items-center cursor-pointer h-[21px]" onclick="resetCategory(${char.id}, 'raid')" title="Click to edit">
+                                    ✓ RAID COMPLETE
+                                </div>` :
+                                `<div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center h-[21px]">
+                                    BOSSES: <input type="number" value="${char.raidCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'raid', this.value)" class="count-input"> / 6
+                                </div>`
+                            }
+
+                            <div class="flex gap-3.5 justify-center">
+                                ${char.raid.map((val, i) => {
+                                    const unlocked = char.raidCount >= REQS.raid[i];
+                                    const status = getRaidStatus(val);
+                                    return `
+                                    <div onclick="cycleRaidSlot(${char.id}, ${i})" 
+                                         class="check-box w-10 h-10 rounded-xl border-2 ${unlocked ? 'cursor-pointer shadow-md ' + status.class : 'border-slate-800 bg-slate-900 opacity-30'}">
+                                         ${unlocked ? status.label : `<span class="progress-text">${char.raidCount}/${REQS.raid[i]}</span>`}
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Dungeons -->
+                        <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center md:border-r border-slate-800">
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">Dungeons</span>
+                            
+                            ${dungeonMaxed ? 
+                                `<div class="text-[10px] text-emerald-500 font-bold mb-3 flex items-center cursor-pointer h-[21px]" onclick="resetCategory(${char.id}, 'dungeon')" title="Click to edit">
+                                    ✓ DUNGEONS COMPLETE
+                                </div>` :
+                                `<div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center h-[21px]">
+                                    RUNS: <input type="number" value="${char.dungeonCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'dungeon', this.value)" class="count-input"> / 8
+                                </div>`
+                            }
+
+                            <div class="flex gap-3.5 justify-center">
+                                ${char.dungeonLevels.map((level, i) => {
+                                    const unlocked = char.dungeonCount >= REQS.dungeon[i];
+                                    return `
+                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getDungeonStyle(level, char.dungeonCount, REQS.dungeon[i])}">
+                                        ${unlocked ? `
+                                            <input type="number" 
+                                                value="${level || ''}" 
+                                                placeholder="+"
+                                                onfocus="this.select()"
+                                                onchange="setDungeonLevel(${char.id}, ${i}, this.value)"
+                                                class="level-input">
+                                        ` : `
+                                            <span class="progress-text">${char.dungeonCount}/${REQS.dungeon[i]}</span>
+                                        `}
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <!-- World -->
+                        <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center">
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">World</span>
+                            
+                            ${worldMaxed ? 
+                                `<div class="text-[10px] text-emerald-500 font-bold mb-3 flex items-center cursor-pointer h-[21px]" onclick="resetCategory(${char.id}, 'world')" title="Click to edit">
+                                    ✓ WORLD COMPLETE
+                                </div>` :
+                                `<div class="text-[10px] text-slate-500 font-bold mb-3 flex items-center h-[21px]">
+                                    DELVES: <input type="number" value="${char.worldCount}" onfocus="this.select()" onchange="setCategoryCount(${char.id}, 'world', this.value)" class="count-input"> / 8
+                                </div>`
+                            }
+
+                            <div class="flex gap-3.5 justify-center">
+                                ${REQS.world.map((req, i) => {
+                                    const completed = char.worldCount >= req;
+                                    return `
+                                    <div class="check-box w-10 h-10 rounded-xl border-2 transition-all duration-300 ${completed ? 'active-world shadow-md' : 'border-slate-800 bg-slate-900 opacity-30'}">
+                                         ${completed ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : `<span class="progress-text">${char.worldCount}/${req}</span>`}
+                                    </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('charNameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCharacter();
+        });
+
+        load();
+    </script>
+</body>
+</html>
