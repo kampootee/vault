@@ -29,6 +29,16 @@
         .check-box.active-dungeon { background-color: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
         .check-box.active-world { background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
 
+        /* Role Selection Styling */
+        .role-option {
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .role-option.selected {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
@@ -76,32 +86,97 @@
 
     <!-- Add Character Modal -->
     <div id="modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="glass-panel w-full max-w-md rounded-2xl p-6 shadow-2xl">
-            <h2 class="text-xl font-semibold mb-4">Add Character</h2>
-            <input type="text" id="charNameInput" placeholder="Name (e.g. Maladath-Silvermoon)" 
-                class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6">
-            <div class="flex gap-3 justify-end">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 shadow-2xl">
+            <h2 class="text-xl font-semibold mb-4 text-white">Add Character</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Character Name</label>
+                    <input type="text" id="charNameInput" placeholder="e.g. Thrall-Draenor" 
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Class</label>
+                        <select id="charClassInput" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="Warrior">Warrior</option>
+                            <option value="Paladin">Paladin</option>
+                            <option value="Hunter">Hunter</option>
+                            <option value="Rogue">Rogue</option>
+                            <option value="Priest">Priest</option>
+                            <option value="DeathKnight">Death Knight</option>
+                            <option value="Shaman">Shaman</option>
+                            <option value="Mage">Mage</option>
+                            <option value="Warlock">Warlock</option>
+                            <option value="Monk">Monk</option>
+                            <option value="Druid">Druid</option>
+                            <option value="DemonHunter">Demon Hunter</option>
+                            <option value="Evoker">Evoker</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">Role</label>
+                        <div class="flex gap-2">
+                            <button onclick="setRole('tank')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center" data-role="tank" title="Tank">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            </button>
+                            <button onclick="setRole('healer')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center" data-role="healer" title="Healer">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </button>
+                            <button onclick="setRole('dps')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center selected" data-role="dps" title="DPS">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"></path><path d="M13 19l6-6"></path><path d="M16 22l5-5"></path><circle cx="20" cy="4" r="2"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end mt-8">
                 <button onclick="closeModal()" class="px-5 py-2.5 text-slate-400 hover:text-white transition-colors">Cancel</button>
-                <button onclick="addCharacter()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-medium transition-colors">Create Row</button>
+                <button onclick="addCharacter()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-medium transition-colors text-white">Create Character</button>
             </div>
         </div>
     </div>
 
     <script>
+        const CLASS_COLORS = {
+            Warrior: '#C69B6D',
+            Paladin: '#F48CBA',
+            Hunter: '#AAD372',
+            Rogue: '#FFF468',
+            Priest: '#FFFFFF',
+            DeathKnight: '#C41E3A',
+            Shaman: '#0070DD',
+            Mage: '#3FC7EB',
+            Warlock: '#8788EE',
+            Monk: '#00FF98',
+            Druid: '#FF7C0A',
+            DemonHunter: '#A330C9',
+            Evoker: '#33937F'
+        };
+
+        const ROLE_ICONS = {
+            tank: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+            healer: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+            dps: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"></path><path d="M13 19l6-6"></path><path d="M16 22l5-5"></path><circle cx="20" cy="4" r="2"></circle></svg>`
+        };
+
         let state = {
             characters: []
         };
 
-        const STORAGE_KEY = 'wow_checklist_modern_v1';
+        let selectedRole = 'dps';
+
+        const STORAGE_KEY = 'wow_checklist_modern_v2';
 
         function load() {
             const data = localStorage.getItem(STORAGE_KEY);
             if (data) {
                 state = JSON.parse(data);
             } else {
-                // Default starter
                 state.characters = [
-                    { id: Date.now(), name: 'Main Character', raid: [false, false, false], dungeon: [false, false, false], world: [false, false, false] }
+                    { id: Date.now(), name: 'Main Character', class: 'Warrior', role: 'tank', raid: [false, false, false], dungeon: [false, false, false], world: [false, false, false] }
                 ];
             }
             render();
@@ -140,6 +215,14 @@
             }
         }
 
+        function setRole(role) {
+            selectedRole = role;
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.dataset.role === role) btn.classList.add('selected');
+            });
+        }
+
         function openModal() {
             document.getElementById('modal').style.display = 'flex';
             document.getElementById('charNameInput').focus();
@@ -151,11 +234,14 @@
 
         function addCharacter() {
             const nameInput = document.getElementById('charNameInput');
+            const classInput = document.getElementById('charClassInput');
             const name = nameInput.value.trim();
             if (name) {
                 state.characters.push({
                     id: Date.now(),
                     name: name,
+                    class: classInput.value,
+                    role: selectedRole,
                     raid: [false, false, false],
                     dungeon: [false, false, false],
                     world: [false, false, false]
@@ -178,21 +264,30 @@
             }
             
             empty.classList.add('hidden');
-            list.innerHTML = state.characters.map(char => `
+            list.innerHTML = state.characters.map(char => {
+                const classColor = CLASS_COLORS[char.class] || '#ffffff';
+                const roleIcon = ROLE_ICONS[char.role] || '';
+
+                return `
                 <div class="glass-panel rounded-xl md:rounded-2xl p-4 md:p-0 overflow-hidden">
                     <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4 md:gap-0">
                         
                         <!-- Name Section -->
                         <div class="md:col-span-3 px-6 py-4 flex items-center justify-between md:border-r border-slate-800">
-                            <span class="font-semibold text-slate-100 truncate mr-2">${char.name}</span>
-                            <button onclick="deleteChar(${char.id})" class="text-slate-600 hover:text-red-400 transition-colors p-1">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <div class="p-1.5 rounded-md bg-slate-800 text-slate-400 shrink-0 border border-slate-700">
+                                    ${roleIcon}
+                                </div>
+                                <span class="font-bold truncate text-lg" style="color: ${classColor}">${char.name}</span>
+                            </div>
+                            <button onclick="deleteChar(${char.id})" class="text-slate-600 hover:text-red-400 transition-colors p-1 shrink-0 ml-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
                             </button>
                         </div>
 
-                        <!-- Activities (Mobile labels shown, Desktop hidden) -->
+                        <!-- Activities -->
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
-                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Raids</span>
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Raids (2/4/6)</span>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
                                 ${char.raid.map((active, i) => `
                                     <div onclick="toggleSlot(${char.id}, 'raid', ${i})" 
@@ -204,7 +299,7 @@
                         </div>
 
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
-                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Dungeons</span>
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Dungeons (1/4/8)</span>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
                                 ${char.dungeon.map((active, i) => `
                                     <div onclick="toggleSlot(${char.id}, 'dungeon', ${i})" 
@@ -216,7 +311,7 @@
                         </div>
 
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2">
-                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">World</span>
+                            <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">World (2/4/8)</span>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
                                 ${char.world.map((active, i) => `
                                     <div onclick="toggleSlot(${char.id}, 'world', ${i})" 
@@ -229,7 +324,7 @@
 
                     </div>
                 </div>
-            `).join('');
+            `;}).join('');
         }
 
         // Handle enter key on input
