@@ -38,7 +38,6 @@
         .raid-heroic { background-color: #9333ea; border-color: #c084fc; box-shadow: 0 0 10px rgba(147, 51, 234, 0.3); }
         .raid-mythic { background-color: #d97706; border-color: #fbbf24; box-shadow: 0 0 10px rgba(217, 119, 6, 0.3); }
 
-        .check-box.active-dungeon { background-color: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
         .check-box.active-world { background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
 
         /* Role Selection Styling */
@@ -346,6 +345,25 @@
             }
         }
 
+        function getDungeonStyle(level) {
+            if (!level || level === 0) return 'background-color: #1e293b; border-color: #334155;';
+            
+            const colors = {
+                2: { bg: '#10b981', border: '#34d399' }, // Emerald
+                3: { bg: '#059669', border: '#10b981' }, // Green
+                4: { bg: '#0d9488', border: '#14b8a6' }, // Teal
+                5: { bg: '#2563eb', border: '#60a5fa' }, // Blue
+                6: { bg: '#4f46e5', border: '#818cf8' }, // Indigo
+                7: { bg: '#7c3aed', border: '#a78bfa' }, // Violet
+                8: { bg: '#9333ea', border: '#c084fc' }, // Purple
+                9: { bg: '#c026d3', border: '#e879f9' }, // Fuchsia
+                10: { bg: '#d97706', border: '#fbbf24' } // Amber/Gold
+            };
+
+            const config = colors[level] || (level > 10 ? colors[10] : { bg: '#3b82f6', border: '#60a5fa' });
+            return `background-color: ${config.bg}; border-color: ${config.border}; box-shadow: 0 0 10px ${config.bg}66;`;
+        }
+
         function render() {
             const list = document.getElementById('characterList');
             const empty = document.getElementById('emptyState');
@@ -398,10 +416,10 @@
                         <div class="md:col-span-3 px-4 md:px-0 flex flex-col md:items-center gap-2 md:border-r border-slate-800">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500">Dungeons (1/4/8)</span>
                             <div class="flex gap-3 justify-center mb-2 md:mb-0">
-                                ${char.dungeon.map((active, i) => `
-                                    <div class="relative w-10 h-10 md:w-9 md:h-9 check-box rounded-lg border-2 border-slate-700 ${active ? 'active-dungeon' : 'bg-slate-800'}">
+                                ${char.dungeonLevels.map((level, i) => `
+                                    <div class="relative w-10 h-10 md:w-9 md:h-9 check-box rounded-lg border-2" style="${getDungeonStyle(level)}">
                                         <input type="number" 
-                                               value="${char.dungeonLevels[i] || ''}" 
+                                               value="${level || ''}" 
                                                placeholder="+"
                                                onchange="setDungeonLevel(${char.id}, ${i}, this.value)"
                                                class="level-input">
