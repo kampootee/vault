@@ -32,18 +32,24 @@
             color: white;
         }
 
-        /* Raid Difficulty Colors */
+        /* Consistent WoW Rarity Palette */
+        .color-veteran { background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); } /* Green */
+        .color-champion { background-color: #2563eb; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37, 99, 235, 0.3); } /* Blue */
+        .color-hero { background-color: #9333ea; border-color: #c084fc; box-shadow: 0 0 10px rgba(147, 51, 234, 0.3); }     /* Purple */
+        .color-mythic { background-color: #d97706; border-color: #fbbf24; box-shadow: 0 0 10px rgba(217, 119, 6, 0.3); }    /* Orange/Gold */
+
         .raid-none { background-color: #1e293b; border-color: #334155; }
         .raid-normal { background-color: #2563eb; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37, 99, 235, 0.3); }
         .raid-heroic { background-color: #9333ea; border-color: #c084fc; box-shadow: 0 0 10px rgba(147, 51, 234, 0.3); }
         .raid-mythic { background-color: #d97706; border-color: #fbbf24; box-shadow: 0 0 10px rgba(217, 119, 6, 0.3); }
 
-        .check-box.active-world { background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+        .active-world { background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
 
         /* Role Selection Styling */
         .role-option {
             border: 2px solid transparent;
             transition: all 0.2s;
+            cursor: pointer;
         }
         .role-option.selected {
             border-color: #3b82f6;
@@ -183,16 +189,8 @@
                     </div>
                     <div>
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Role</label>
-                        <div class="flex gap-2">
-                            <button onclick="setRole('tank')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center h-12" data-role="tank" title="Tank">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            </button>
-                            <button onclick="setRole('healer')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center h-12" data-role="healer" title="Healer">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            </button>
-                            <button onclick="setRole('dps')" class="role-btn role-option p-2 bg-slate-900 rounded-xl flex-1 flex justify-center items-center h-12 selected" data-role="dps" title="DPS">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"></path><path d="M13 19l6-6"></path><path d="M16 22l5-5"></path><circle cx="20" cy="4" r="2"></circle></svg>
-                            </button>
+                        <div id="modalRoleContainer" class="flex gap-2">
+                            <!-- Role buttons will be injected here to keep logic DRY -->
                         </div>
                     </div>
                 </div>
@@ -223,9 +221,21 @@
         };
 
         const ROLE_ICONS = {
-            tank: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-            healer: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-            dps: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"></path><path d="M13 19l6-6"></path><path d="M16 22l5-5"></path><circle cx="20" cy="4" r="2"></circle></svg>`
+            tank: `
+                <svg viewBox="0 0 64 64" width="24" height="24">
+                    <circle cx="32" cy="32" r="30" fill="#0070dd" stroke="#444" stroke-width="2" />
+                    <path d="M32 12l-14 6v12c0 10 14 18 14 18s14-8 14-18v-12l-14-6z" fill="white" />
+                </svg>`,
+            healer: `
+                <svg viewBox="0 0 64 64" width="24" height="24">
+                    <circle cx="32" cy="32" r="30" fill="#10b981" stroke="#444" stroke-width="2" />
+                    <path d="M32 16v32M16 32h32" stroke="white" stroke-width="8" stroke-linecap="square" />
+                </svg>`,
+            dps: `
+                <svg viewBox="0 0 64 64" width="24" height="24">
+                    <circle cx="32" cy="32" r="30" fill="#cc3333" stroke="#444" stroke-width="2" />
+                    <path d="M18 46l6 2 24-24-8-8-24 24 2 6z M46 46l2-6-24-24-8 8 24 24 6-2z" fill="white" />
+                </svg>`
         };
 
         const REQS = {
@@ -258,6 +268,7 @@
             } else {
                 state.characters = [];
             }
+            renderRoleSelector();
             render();
         }
 
@@ -265,7 +276,6 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
 
-        // Dungeon Item Level Mapping
         function getVaultIlvl(level) {
             const num = parseInt(level);
             if (isNaN(num) || num < 2) return num > 0 ? num : "";
@@ -277,7 +287,6 @@
             return "266";
         }
 
-        // World/Delve Item Level Mapping
         function getWorldVaultIlvl(tier) {
             const num = parseInt(tier);
             if (isNaN(num) || num < 1) return "";
@@ -288,10 +297,9 @@
             if (num === 5) return "246";
             if (num === 6) return "253";
             if (num === 7) return "256";
-            return "259"; // Tier 8 and above
+            return "259";
         }
 
-        // Drag and Drop Logic
         function handleDragStart(index) {
             draggedItemIndex = index;
             setTimeout(() => {
@@ -394,10 +402,18 @@
 
         function setRole(role) {
             selectedRole = role;
-            document.querySelectorAll('.role-btn').forEach(btn => {
-                btn.classList.remove('selected');
-                if (btn.dataset.role === role) btn.classList.add('selected');
-            });
+            renderRoleSelector();
+        }
+
+        function renderRoleSelector() {
+            const container = document.getElementById('modalRoleContainer');
+            container.innerHTML = ['tank', 'healer', 'dps'].map(role => `
+                <button onclick="setRole('${role}')" 
+                        class="role-btn role-option p-1 bg-slate-900 rounded-full flex-1 flex justify-center items-center h-12 ${selectedRole === role ? 'selected' : ''}" 
+                        data-role="${role}" title="${role.toUpperCase()}">
+                    ${ROLE_ICONS[role]}
+                </button>
+            `).join('');
         }
 
         function openModal() {
@@ -435,30 +451,36 @@
 
         function getRaidStatus(val) {
             switch(val) {
-                case 1: return { class: 'raid-normal', label: 'N' };
-                case 2: return { class: 'raid-heroic', label: 'H' };
-                case 3: return { class: 'raid-mythic', label: 'M' };
+                case 1: return { class: 'raid-normal color-champion', label: 'N' };
+                case 2: return { class: 'raid-heroic color-hero', label: 'H' };
+                case 3: return { class: 'raid-mythic color-mythic', label: 'M' };
                 default: return { class: 'raid-none', label: '' };
             }
         }
 
-        function getBoxStyle(level, currentCount, req) {
+        function getDungeonBoxStyle(level, currentCount, req) {
             if (currentCount < req) return 'background-color: #0f172a; border-color: #1e293b; opacity: 0.5;';
             if (!level || level === 0) return 'background-color: #1e293b; border-color: #334155;';
             
-            const colors = {
-                1: { bg: '#10b981', border: '#34d399' },
-                2: { bg: '#10b981', border: '#34d399' },
-                3: { bg: '#059669', border: '#10b981' },
-                4: { bg: '#0d9488', border: '#14b8a6' },
-                5: { bg: '#2563eb', border: '#60a5fa' },
-                6: { bg: '#4f46e5', border: '#818cf8' },
-                7: { bg: '#7c3aed', border: '#a78bfa' },
-                8: { bg: '#9333ea', border: '#c084fc' } // Purple for 8+
-            };
+            const ilvl = parseInt(getVaultIlvl(level));
+            if (ilvl === 250) return 'background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);'; // Veteran/Green
+            if (ilvl >= 253 && ilvl <= 256) return 'background-color: #2563eb; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);'; // Champion/Blue
+            if (ilvl >= 259 && ilvl <= 263) return 'background-color: #9333ea; border-color: #c084fc; box-shadow: 0 0 10px rgba(147, 51, 234, 0.3);'; // Hero/Purple
+            if (ilvl >= 266) return 'background-color: #d97706; border-color: #fbbf24; box-shadow: 0 0 10px rgba(217, 119, 6, 0.3);'; // Mythic/Orange
+            
+            return 'background-color: #1e293b; border-color: #334155;';
+        }
 
-            const config = colors[level] || (level >= 8 ? colors[8] : { bg: '#3b82f6', border: '#60a5fa' });
-            return `background-color: ${config.bg}; border-color: ${config.border}; box-shadow: 0 0 10px ${config.bg}66;`;
+        function getWorldBoxStyle(tier, currentCount, req) {
+            if (currentCount < req) return 'background-color: #0f172a; border-color: #1e293b; opacity: 0.5;';
+            if (!tier || tier === 0) return 'background-color: #1e293b; border-color: #334155;';
+            
+            const ilvl = parseInt(getWorldVaultIlvl(tier));
+            if (ilvl >= 233 && ilvl <= 243) return 'background-color: #10b981; border-color: #34d399; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);'; // Veteran/Green
+            if (ilvl >= 246 && ilvl <= 256) return 'background-color: #2563eb; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);'; // Champion/Blue
+            if (ilvl >= 259) return 'background-color: #9333ea; border-color: #c084fc; box-shadow: 0 0 10px rgba(147, 51, 234, 0.3);'; // Hero/Purple
+            
+            return 'background-color: #1e293b; border-color: #334155;';
         }
 
         function render() {
@@ -494,7 +516,7 @@
                                 <div class="drag-handle p-1 -ml-3" title="Drag to reorder">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
                                 </div>
-                                <div class="p-2 rounded-lg bg-slate-800 text-slate-400 shrink-0 border border-slate-700 shadow-inner">
+                                <div class="shrink-0">
                                     ${roleIcon}
                                 </div>
                                 <span class="font-bold truncate text-lg" style="color: ${classColor}">${char.name}</span>
@@ -550,7 +572,7 @@
                                     const displayValue = level > 0 ? getVaultIlvl(level) : "";
                                     
                                     return `
-                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getBoxStyle(level, char.dungeonCount, REQS.dungeon[i])}">
+                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getDungeonBoxStyle(level, char.dungeonCount, REQS.dungeon[i])}">
                                         ${unlocked ? `
                                             <input type="text" 
                                                 value="${displayValue}" 
@@ -587,7 +609,7 @@
                                     const displayValue = tier > 0 ? getWorldVaultIlvl(tier) : "";
                                     
                                     return `
-                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getBoxStyle(tier, char.worldCount, REQS.world[i])}">
+                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getWorldBoxStyle(tier, char.worldCount, REQS.world[i])}">
                                         ${unlocked ? `
                                             <input type="text" 
                                                 value="${displayValue}" 
