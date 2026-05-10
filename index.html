@@ -61,7 +61,7 @@
             -moz-appearance: textfield;
         }
 
-        .level-input { width: 100%; height: 100%; font-size: 16px; }
+        .level-input { width: 100%; height: 100%; font-size: 15px; }
         .count-input { 
             width: 32px; 
             font-size: 12px; 
@@ -264,6 +264,21 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
 
+        // Vault Item Level Mapping
+        function getVaultIlvl(level) {
+            const num = parseInt(level);
+            if (isNaN(num) || num < 2) return "";
+            if (num === 2) return "250";
+            if (num === 3) return "250";
+            if (num === 4) return "253";
+            if (num === 5) return "256";
+            if (num === 6) return "259";
+            if (num === 7) return "259";
+            if (num === 8) return "263";
+            if (num === 9) return "263";
+            return "266";
+        }
+
         // Drag and Drop Logic
         function handleDragStart(index) {
             draggedItemIndex = index;
@@ -307,7 +322,8 @@
         function setDungeonLevel(charId, index, level) {
             const char = state.characters.find(c => c.id === charId);
             if (char && char.dungeonCount >= REQS.dungeon[index]) {
-                char.dungeonLevels[index] = parseInt(level) || 0;
+                const num = parseInt(level) || 0;
+                char.dungeonLevels[index] = num;
                 save();
                 render();
             }
@@ -510,13 +526,16 @@
                             <div class="flex gap-3.5 justify-center">
                                 ${char.dungeonLevels.map((level, i) => {
                                     const unlocked = char.dungeonCount >= REQS.dungeon[i];
+                                    const displayValue = level > 0 ? getVaultIlvl(level) : "";
+                                    
                                     return `
                                     <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getDungeonStyle(level, char.dungeonCount, REQS.dungeon[i])}">
                                         ${unlocked ? `
-                                            <input type="number" 
-                                                value="${level || ''}" 
+                                            <input type="text" 
+                                                value="${displayValue}" 
                                                 placeholder="+"
-                                                onfocus="this.select()"
+                                                onfocus="this.value = state.characters.find(c => c.id === ${char.id}).dungeonLevels[${i}] || ''; this.select();"
+                                                onblur="const val = parseInt(this.value); if(!isNaN(val)) { setDungeonLevel(${char.id}, ${i}, val); } else { this.value = getVaultIlvl(state.characters.find(c => c.id === ${char.id}).dungeonLevels[${i}]); }"
                                                 onchange="setDungeonLevel(${char.id}, ${i}, this.value)"
                                                 class="level-input">
                                         ` : `
