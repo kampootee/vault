@@ -269,14 +269,11 @@
         function getVaultIlvl(level) {
             const num = parseInt(level);
             if (isNaN(num) || num < 2) return num > 0 ? num : "";
-            if (num === 2) return "250";
-            if (num === 3) return "250";
+            if (num === 2 || num === 3) return "250";
             if (num === 4) return "253";
             if (num === 5) return "256";
-            if (num === 6) return "259";
-            if (num === 7) return "259";
-            if (num === 8) return "263";
-            if (num === 9) return "263";
+            if (num === 6 || num === 7) return "259";
+            if (num === 8 || num === 9) return "263";
             return "266";
         }
 
@@ -284,13 +281,14 @@
         function getWorldVaultIlvl(tier) {
             const num = parseInt(tier);
             if (isNaN(num) || num < 1) return "";
-            if (num === 1 || num === 2) return "623";
-            if (num === 3) return "626";
-            if (num === 4) return "636";
-            if (num === 5) return "642";
-            if (num === 6) return "645";
-            if (num >= 7) return "649";
-            return "";
+            if (num === 1) return "233";
+            if (num === 2) return "237";
+            if (num === 3) return "240";
+            if (num === 4) return "243";
+            if (num === 5) return "246";
+            if (num === 6) return "253";
+            if (num === 7) return "256";
+            return "259"; // Tier 8 and above
         }
 
         // Drag and Drop Logic
@@ -444,7 +442,7 @@
             }
         }
 
-        function getDungeonStyle(level, currentCount, req) {
+        function getBoxStyle(level, currentCount, req) {
             if (currentCount < req) return 'background-color: #0f172a; border-color: #1e293b; opacity: 0.5;';
             if (!level || level === 0) return 'background-color: #1e293b; border-color: #334155;';
             
@@ -456,12 +454,10 @@
                 5: { bg: '#2563eb', border: '#60a5fa' },
                 6: { bg: '#4f46e5', border: '#818cf8' },
                 7: { bg: '#7c3aed', border: '#a78bfa' },
-                8: { bg: '#9333ea', border: '#c084fc' },
-                9: { bg: '#c026d3', border: '#e879f9' },
-                10: { bg: '#d97706', border: '#fbbf24' }
+                8: { bg: '#9333ea', border: '#c084fc' } // Purple for 8+
             };
 
-            const config = colors[level] || (level > 10 ? colors[10] : { bg: '#3b82f6', border: '#60a5fa' });
+            const config = colors[level] || (level >= 8 ? colors[8] : { bg: '#3b82f6', border: '#60a5fa' });
             return `background-color: ${config.bg}; border-color: ${config.border}; box-shadow: 0 0 10px ${config.bg}66;`;
         }
 
@@ -554,7 +550,7 @@
                                     const displayValue = level > 0 ? getVaultIlvl(level) : "";
                                     
                                     return `
-                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getDungeonStyle(level, char.dungeonCount, REQS.dungeon[i])}">
+                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getBoxStyle(level, char.dungeonCount, REQS.dungeon[i])}">
                                         ${unlocked ? `
                                             <input type="text" 
                                                 value="${displayValue}" 
@@ -591,7 +587,7 @@
                                     const displayValue = tier > 0 ? getWorldVaultIlvl(tier) : "";
                                     
                                     return `
-                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getDungeonStyle(tier, char.worldCount, REQS.world[i])}">
+                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getBoxStyle(tier, char.worldCount, REQS.world[i])}">
                                         ${unlocked ? `
                                             <input type="text" 
                                                 value="${displayValue}" 
