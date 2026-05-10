@@ -241,7 +241,7 @@
         let selectedRole = 'dps';
         let draggedItemIndex = null;
 
-        const STORAGE_KEY = 'wow_checklist_modern_v4';
+        const STORAGE_KEY = 'wow_checklist_modern_v5';
 
         function load() {
             const data = localStorage.getItem(STORAGE_KEY);
@@ -250,6 +250,7 @@
                 state.characters.forEach(char => {
                     if (typeof char.raid[0] === 'boolean') char.raid = char.raid.map(v => v ? 1 : 0);
                     if (!char.dungeonLevels) char.dungeonLevels = [0, 0, 0];
+                    if (!char.worldLevels) char.worldLevels = [0, 0, 0];
                     if (char.raidCount === undefined) char.raidCount = 0;
                     if (char.dungeonCount === undefined) char.dungeonCount = 0;
                     if (char.worldCount === undefined) char.worldCount = 0;
@@ -264,10 +265,10 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
 
-        // Vault Item Level Mapping
+        // Dungeon Item Level Mapping
         function getVaultIlvl(level) {
             const num = parseInt(level);
-            if (isNaN(num) || num < 2) return "";
+            if (isNaN(num) || num < 2) return num > 0 ? num : "";
             if (num === 2) return "250";
             if (num === 3) return "250";
             if (num === 4) return "253";
@@ -277,6 +278,19 @@
             if (num === 8) return "263";
             if (num === 9) return "263";
             return "266";
+        }
+
+        // World/Delve Item Level Mapping
+        function getWorldVaultIlvl(tier) {
+            const num = parseInt(tier);
+            if (isNaN(num) || num < 1) return "";
+            if (num === 1 || num === 2) return "623";
+            if (num === 3) return "626";
+            if (num === 4) return "636";
+            if (num === 5) return "642";
+            if (num === 6) return "645";
+            if (num >= 7) return "649";
+            return "";
         }
 
         // Drag and Drop Logic
@@ -329,6 +343,16 @@
             }
         }
 
+        function setWorldLevel(charId, index, tier) {
+            const char = state.characters.find(c => c.id === charId);
+            if (char && char.worldCount >= REQS.world[index]) {
+                const num = parseInt(tier) || 0;
+                char.worldLevels[index] = num;
+                save();
+                render();
+            }
+        }
+
         function setCategoryCount(charId, cat, val) {
             const char = state.characters.find(c => c.id === charId);
             if (char) {
@@ -360,7 +384,7 @@
                 state.characters.forEach(c => {
                     c.raid = [0, 0, 0];
                     c.dungeonLevels = [0, 0, 0];
-                    c.world = [false, false, false];
+                    c.worldLevels = [0, 0, 0];
                     c.raidCount = 0;
                     c.dungeonCount = 0;
                     c.worldCount = 0;
@@ -399,7 +423,7 @@
                     role: selectedRole,
                     raid: [0, 0, 0],
                     dungeonLevels: [0, 0, 0],
-                    world: [false, false, false],
+                    worldLevels: [0, 0, 0],
                     raidCount: 0,
                     dungeonCount: 0,
                     worldCount: 0
@@ -425,6 +449,7 @@
             if (!level || level === 0) return 'background-color: #1e293b; border-color: #334155;';
             
             const colors = {
+                1: { bg: '#10b981', border: '#34d399' },
                 2: { bg: '#10b981', border: '#34d399' },
                 3: { bg: '#059669', border: '#10b981' },
                 4: { bg: '#0d9488', border: '#14b8a6' },
@@ -547,7 +572,7 @@
                             </div>
                         </div>
 
-                        <!-- World -->
+                        <!-- World / Delves -->
                         <div class="md:col-span-3 px-5 py-5 md:py-6 flex flex-col items-center">
                             <span class="md:hidden text-[10px] uppercase font-bold text-slate-500 mb-2">World</span>
                             
@@ -561,11 +586,23 @@
                             }
 
                             <div class="flex gap-3.5 justify-center">
-                                ${REQS.world.map((req, i) => {
-                                    const completed = char.worldCount >= req;
+                                ${char.worldLevels.map((tier, i) => {
+                                    const unlocked = char.worldCount >= REQS.world[i];
+                                    const displayValue = tier > 0 ? getWorldVaultIlvl(tier) : "";
+                                    
                                     return `
-                                    <div class="check-box w-10 h-10 rounded-xl border-2 transition-all duration-300 ${completed ? 'active-world shadow-md' : 'border-slate-800 bg-slate-900 opacity-30'}">
-                                         ${completed ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' : `<span class="progress-text">${char.worldCount}/${req}</span>`}
+                                    <div class="relative w-10 h-10 check-box rounded-xl border-2 shadow-md" style="${getDungeonStyle(tier, char.worldCount, REQS.world[i])}">
+                                        ${unlocked ? `
+                                            <input type="text" 
+                                                value="${displayValue}" 
+                                                placeholder="+"
+                                                onfocus="this.value = state.characters.find(c => c.id === ${char.id}).worldLevels[${i}] || ''; this.select();"
+                                                onblur="const val = parseInt(this.value); if(!isNaN(val)) { setWorldLevel(${char.id}, ${i}, val); } else { this.value = getWorldVaultIlvl(state.characters.find(c => c.id === ${char.id}).worldLevels[${i}]); }"
+                                                onchange="setWorldLevel(${char.id}, ${i}, this.value)"
+                                                class="level-input">
+                                        ` : `
+                                            <span class="progress-text">${char.worldCount}/${REQS.world[i]}</span>
+                                        `}
                                     </div>
                                     `;
                                 }).join('')}
